@@ -2,11 +2,9 @@
 
 Microservicio Spring Boot encargado de administrar recursos RabbitMQ mediante una API REST.
 
-Este componente forma parte del proyecto **CampusLab** y permite crear y eliminar colas, exchanges y bindings de RabbitMQ, además de validar parámetros de entrada y manejar errores de forma centralizada.
+Forma parte del proyecto **CampusLab** y permite crear y eliminar colas, exchanges y bindings, además de validar parámetros de entrada y manejar errores de forma centralizada.
 
----
-
-## Tecnologías utilizadas
+## Tecnologías
 
 - Java 17
 - Spring Boot
@@ -16,48 +14,34 @@ Este componente forma parte del proyecto **CampusLab** y permite crear y elimina
 - RabbitMQ
 - Docker
 - Docker Compose
-- Gradle
+- Gradle 8.5
 
----
+## Puerto
 
-# Configuración general
-
-## Puerto del microservicio
-
-El microservicio utiliza el puerto:
+El microservicio se ejecuta en:
 
 ```text
 8082
 ```
 
-## URL base
-
-Para pruebas locales:
-
-```text
-http://localhost:8082
-```
-
-Por lo tanto, todos los endpoints administrativos parten desde:
+URL base local:
 
 ```text
 http://localhost:8082/api/rabbit
 ```
 
----
+## Configuración de RabbitMQ
 
-# Configuración de RabbitMQ
+La conexión con RabbitMQ se configura mediante variables de entorno.
 
-El microservicio se conecta a RabbitMQ utilizando las siguientes variables de entorno:
+| Variable | Descripción | Valor local |
+|---|---|---|
+| `RABBITMQ_HOST` | Host de RabbitMQ | `rabbitmq` |
+| `RABBITMQ_PORT` | Puerto AMQP | `5672` |
+| `RABBITMQ_USERNAME` | Usuario | `campuslab` |
+| `RABBITMQ_PASSWORD` | Contraseña | `campuslab123` |
 
-```text
-RABBITMQ_HOST
-RABBITMQ_PORT
-RABBITMQ_USERNAME
-RABBITMQ_PASSWORD
-```
-
-La configuración utilizada en `application.properties` es:
+Configuración utilizada en `application.properties`:
 
 ```properties
 server.port=8082
@@ -70,28 +54,19 @@ spring.rabbitmq.username=${RABBITMQ_USERNAME:campuslab}
 spring.rabbitmq.password=${RABBITMQ_PASSWORD:campuslab123}
 ```
 
-En ejecución local sin Docker se utilizan por defecto:
-
-```text
-Host: localhost
-Puerto AMQP: 5672
-Usuario: campuslab
-Contraseña: campuslab123
-```
-
-Cuando el servicio se ejecuta mediante Docker Compose, el host utilizado es:
+Cuando se ejecuta mediante Docker Compose, `RABBITMQ_HOST` utiliza el nombre del servicio:
 
 ```text
 rabbitmq
 ```
 
-porque ambos contenedores se encuentran dentro de la misma red de Docker.
+## API REST
 
----
+La API permite administrar:
 
-# API REST
-
-La API permite administrar recursos RabbitMQ mediante endpoints REST.
+- colas
+- exchanges
+- bindings
 
 URL base:
 
@@ -101,23 +76,15 @@ http://localhost:8082/api/rabbit
 
 ---
 
-# Colas
+## Colas
 
-## Crear una cola
-
-Método:
+### Crear una cola
 
 ```http
 POST /api/rabbit/queues
 ```
 
-URL completa:
-
-```text
-http://localhost:8082/api/rabbit/queues
-```
-
-Body:
+Ejemplo:
 
 ```json
 {
@@ -133,11 +100,7 @@ Respuesta esperada:
 Cola creada correctamente
 ```
 
----
-
-## Eliminar una cola
-
-Método:
+### Eliminar una cola
 
 ```http
 DELETE /api/rabbit/queues/{name}
@@ -146,7 +109,7 @@ DELETE /api/rabbit/queues/{name}
 Ejemplo:
 
 ```text
-http://localhost:8082/api/rabbit/queues/q.prueba.campuslab
+DELETE http://localhost:8082/api/rabbit/queues/q.prueba.campuslab
 ```
 
 Respuesta esperada:
@@ -156,46 +119,30 @@ Respuesta esperada:
 Cola eliminada correctamente
 ```
 
-Si la cola no existe, el servicio puede responder:
-
-```text
-404 Not Found
-```
-
 ---
 
-# Exchanges
+## Exchanges
 
-## Crear un exchange
-
-Método:
+### Crear un exchange
 
 ```http
 POST /api/rabbit/exchanges
 ```
 
-URL completa:
-
-```text
-http://localhost:8082/api/rabbit/exchanges
-```
-
-Body:
+Ejemplo:
 
 ```json
 {
-  "name": "ex.prueba.campuslab",
+  "name": "ex.direct.campuslab",
   "type": "direct"
 }
 ```
 
-Tipos de exchange soportados:
+Tipos soportados:
 
-```text
-direct
-topic
-fanout
-```
+- `direct`
+- `topic`
+- `fanout`
 
 Respuesta esperada:
 
@@ -204,11 +151,7 @@ Respuesta esperada:
 Exchange creado correctamente
 ```
 
----
-
-## Eliminar un exchange
-
-Método:
+### Eliminar un exchange
 
 ```http
 DELETE /api/rabbit/exchanges/{name}
@@ -217,7 +160,7 @@ DELETE /api/rabbit/exchanges/{name}
 Ejemplo:
 
 ```text
-http://localhost:8082/api/rabbit/exchanges/ex.prueba.campuslab
+DELETE http://localhost:8082/api/rabbit/exchanges/ex.direct.campuslab
 ```
 
 Respuesta esperada:
@@ -229,28 +172,32 @@ Exchange eliminado correctamente
 
 ---
 
-# Bindings
+## Bindings
 
-## Crear un binding
+Los bindings permiten asociar una cola a un exchange.
 
-Método:
+El DTO utilizado incluye:
+
+```text
+queueName
+exchangeName
+exchangeType
+routingKey
+```
+
+El campo `exchangeType` permite indicar si el binding corresponde a un exchange `direct`, `topic` o `fanout`.
+
+### Crear binding direct
 
 ```http
 POST /api/rabbit/bindings
 ```
 
-URL completa:
-
-```text
-http://localhost:8082/api/rabbit/bindings
-```
-
-Body:
-
 ```json
 {
   "queueName": "q.prueba.campuslab",
-  "exchangeName": "ex.prueba.campuslab",
+  "exchangeName": "ex.direct.campuslab",
+  "exchangeType": "direct",
   "routingKey": "prueba.route"
 }
 ```
@@ -262,43 +209,62 @@ Respuesta esperada:
 Binding creado correctamente
 ```
 
-Para crear un binding correctamente deben existir previamente:
+### Crear binding topic
 
-1. La cola.
-2. El exchange.
-
-Orden recomendado:
-
-```text
-Crear cola
-    ↓
-Crear exchange
-    ↓
-Crear binding
+```http
+POST /api/rabbit/bindings
 ```
 
----
+```json
+{
+  "queueName": "q.prueba.campuslab",
+  "exchangeName": "ex.topic.campuslab",
+  "exchangeType": "topic",
+  "routingKey": "prueba.*"
+}
+```
 
-## Eliminar un binding
+Respuesta esperada:
 
-Método:
+```text
+200 OK
+Binding creado correctamente
+```
+
+### Crear binding fanout
+
+```http
+POST /api/rabbit/bindings
+```
+
+En un exchange `fanout` no es necesaria una routing key.
+
+```json
+{
+  "queueName": "q.prueba.campuslab",
+  "exchangeName": "ex.fanout.campuslab",
+  "exchangeType": "fanout"
+}
+```
+
+Respuesta esperada:
+
+```text
+200 OK
+Binding creado correctamente
+```
+
+### Eliminar un binding direct
 
 ```http
 DELETE /api/rabbit/bindings
 ```
 
-URL completa:
-
-```text
-http://localhost:8082/api/rabbit/bindings
-```
-
-Body:
-
 ```json
 {
   "queueName": "q.prueba.campuslab",
-  "exchangeName": "ex.prueba.campuslab",
+  "exchangeName": "ex.direct.campuslab",
+  "exchangeType": "direct",
   "routingKey": "prueba.route"
 }
 ```
@@ -310,29 +276,66 @@ Respuesta esperada:
 Binding eliminado correctamente
 ```
 
+### Eliminar un binding topic
+
+```http
+DELETE /api/rabbit/bindings
+```
+
+```json
+{
+  "queueName": "q.prueba.campuslab",
+  "exchangeName": "ex.topic.campuslab",
+  "exchangeType": "topic",
+  "routingKey": "prueba.*"
+}
+```
+
+### Eliminar un binding fanout
+
+```http
+DELETE /api/rabbit/bindings
+```
+
+```json
+{
+  "queueName": "q.prueba.campuslab",
+  "exchangeName": "ex.fanout.campuslab",
+  "exchangeType": "fanout"
+}
+```
+
 ---
 
-# Validaciones
+## Orden recomendado de creación
 
-El microservicio utiliza DTOs junto con **Jakarta Validation** para impedir parámetros inválidos.
+Para crear un binding correctamente deben existir previamente la cola y el exchange.
 
-Por ejemplo:
+```text
+Crear cola
+    |
+    v
+Crear exchange
+    |
+    v
+Crear binding
+```
+
+---
+
+## Validaciones
+
+El microservicio utiliza DTOs con **Jakarta Validation**.
+
+### Nombre de cola obligatorio
+
+Ejemplo de validación:
 
 ```java
 @NotBlank(message = "El nombre de la cola es obligatorio")
 ```
 
----
-
-## Validación de una cola con nombre vacío
-
-Request:
-
-```http
-POST http://localhost:8082/api/rabbit/queues
-```
-
-Body inválido:
+Request inválido:
 
 ```json
 {
@@ -341,25 +344,15 @@ Body inválido:
 }
 ```
 
-Respuesta:
+Respuesta esperada:
 
 ```text
 400 Bad Request
 ```
 
-Esto impide crear colas con nombres vacíos.
-
----
-
-## Validación del tipo de exchange
+### Tipo de exchange inválido
 
 Request:
-
-```http
-POST http://localhost:8082/api/rabbit/exchanges
-```
-
-Body inválido:
 
 ```json
 {
@@ -378,17 +371,34 @@ Respuesta:
 }
 ```
 
-Los únicos tipos válidos son:
+### Tipo de exchange obligatorio en bindings
+
+El campo:
 
 ```text
-direct
-topic
-fanout
+exchangeType
 ```
+
+es obligatorio para crear o eliminar bindings.
+
+Tipos válidos:
+
+- `direct`
+- `topic`
+- `fanout`
+
+### Routing key
+
+La `routingKey` es obligatoria para:
+
+- `direct`
+- `topic`
+
+En bindings `fanout` no es necesaria.
 
 ---
 
-# Manejo de errores
+## Manejo de errores
 
 El manejo de errores se centraliza mediante:
 
@@ -396,55 +406,68 @@ El manejo de errores se centraliza mediante:
 GlobalExceptionHandler
 ```
 
-Esta clase utiliza:
+La clase utiliza:
 
 ```java
 @RestControllerAdvice
 ```
 
-y permite transformar errores internos en respuestas HTTP claras.
-
-Por ejemplo, un tipo de exchange inválido genera:
+De esta forma, configuraciones inválidas generan respuestas HTTP claras como:
 
 ```text
 400 Bad Request
 ```
 
-en lugar de:
-
-```text
-500 Internal Server Error
-```
-
-Ejemplo de respuesta:
-
-```json
-{
-  "error": "Bad Request",
-  "message": "Tipo de exchange no soportado. Use direct, topic o fanout",
-  "status": 400
-}
-```
+en lugar de errores internos `500`.
 
 ---
 
-# Arquitectura interna
+## Arquitectura interna
 
-El microservicio está separado en capas.
-
-La lógica de administración RabbitMQ se encuentra encapsulada en:
+El microservicio mantiene separadas las responsabilidades.
 
 ```text
+RabbitAdminController
+        |
+        v
 RabbitAdminService
+        |
+        v
+Spring AMQP / RabbitAdmin
+        |
+        v
+RabbitMQ
 ```
 
-Mientras que los endpoints REST se encuentran en:
+### Controller
 
 ```text
 RabbitAdminController
 ```
 
-Los datos de entrada se representan mediante DTOs:
+Expone los endpoints REST.
+
+### Service
+
+```text
+RabbitAdminService
+```
+
+Encapsula la lógica de:
+
+- creación de colas
+- eliminación de colas
+- creación de exchanges
+- eliminación de exchanges
+- creación de bindings
+- eliminación de bindings
+- manejo de exchanges `direct`
+- manejo de exchanges `topic`
+- manejo de exchanges `fanout`
+
+El controller no necesita conocer los detalles internos de Spring AMQP.
+
+### DTOs
 
 ```text
 QueueRequest
@@ -452,13 +475,13 @@ ExchangeRequest
 BindingRequest
 ```
 
-La configuración de RabbitMQ se encuentra en:
+### Configuración
 
 ```text
 RabbitAdminConfig
 ```
 
-Y el manejo centralizado de errores en:
+### Manejo de errores
 
 ```text
 GlobalExceptionHandler
@@ -466,11 +489,11 @@ GlobalExceptionHandler
 
 ---
 
-# Estructura del proyecto
+## Estructura del proyecto
 
 ```text
 campuslab-ms-rabbit-admin
-│
+|
 ├── src
 │   ├── main
 │   │   ├── java
@@ -478,34 +501,34 @@ campuslab-ms-rabbit-admin
 │   │   │       └── duoc
 │   │   │           └── campuslab
 │   │   │               └── mscampuslabrabbitadmin
-│   │   │                   │
+│   │   │                   |
 │   │   │                   ├── config
 │   │   │                   │   └── RabbitAdminConfig.java
-│   │   │                   │
+│   │   │                   |
 │   │   │                   ├── controller
 │   │   │                   │   └── RabbitAdminController.java
-│   │   │                   │
+│   │   │                   |
 │   │   │                   ├── dto
 │   │   │                   │   ├── QueueRequest.java
 │   │   │                   │   ├── ExchangeRequest.java
 │   │   │                   │   └── BindingRequest.java
-│   │   │                   │
+│   │   │                   |
 │   │   │                   ├── exception
 │   │   │                   │   └── GlobalExceptionHandler.java
-│   │   │                   │
+│   │   │                   |
 │   │   │                   ├── service
 │   │   │                   │   └── RabbitAdminService.java
-│   │   │                   │
+│   │   │                   |
 │   │   │                   └── CampuslabMsRabbitAdminApplication.java
-│   │   │
+│   │   |
 │   │   └── resources
 │   │       └── application.properties
-│   │
+│   |
 │   └── test
-│
+|
 ├── gradle
 │   └── wrapper
-│
+|
 ├── Dockerfile
 ├── build.gradle
 ├── settings.gradle
@@ -517,23 +540,16 @@ campuslab-ms-rabbit-admin
 
 ---
 
-# Compilación
+## Compilación
 
-El proyecto utiliza Gradle.
-
-La versión utilizada para el proyecto es:
-
-```text
-Gradle 8.5
-```
-
-Java:
+El proyecto utiliza:
 
 ```text
 Java 17
+Gradle 8.5
 ```
 
-## Compilar en Windows
+Para compilar en Windows:
 
 ```powershell
 .\gradlew.bat clean build
@@ -545,7 +561,7 @@ Resultado esperado:
 BUILD SUCCESSFUL
 ```
 
-El archivo JAR generado se encuentra en:
+JAR generado:
 
 ```text
 build/libs/ms-campuslab-rabbit-admin-0.0.1-SNAPSHOT.jar
@@ -553,15 +569,21 @@ build/libs/ms-campuslab-rabbit-admin-0.0.1-SNAPSHOT.jar
 
 ---
 
-# Docker
+## Docker
 
-El proyecto incluye un archivo:
+Construcción de imagen:
 
-```text
-Dockerfile
+```powershell
+docker build -t lukmezac/campuslab-ms-rabbit-admin:latest .
 ```
 
-Contenido:
+El contenedor expone:
+
+```text
+8082
+```
+
+Dockerfile utilizado:
 
 ```dockerfile
 FROM eclipse-temurin:17-jre
@@ -577,25 +599,7 @@ ENTRYPOINT ["java", "-jar", "app.jar"]
 
 ---
 
-## Construir la imagen Docker
-
-Ejecutar desde la raíz del proyecto:
-
-```powershell
-docker build -t lukmezac/campuslab-ms-rabbit-admin:latest .
-```
-
-Imagen generada:
-
-```text
-lukmezac/campuslab-ms-rabbit-admin:latest
-```
-
----
-
-# Docker Compose
-
-El microservicio se integra con la infraestructura general de CampusLab mediante Docker Compose.
+## Docker Compose
 
 Configuración utilizada:
 
@@ -616,80 +620,55 @@ campuslab-ms-rabbit-admin:
 
 ---
 
-# RabbitMQ utilizado en CampusLab
-
-RabbitMQ utiliza los siguientes puertos:
+## Servicios locales de CampusLab
 
 | Servicio | Puerto |
 |---|---:|
+| `campuslab-bff` | 8080 |
+| `campuslab-ms-bookings` | 8081 |
+| `campuslab-ms-rabbit-admin` | 8082 |
+| `campuslab-ms-notify` | 8083 |
 | RabbitMQ AMQP | 5672 |
 | RabbitMQ Management | 15672 |
-| Rabbit Admin API | 8082 |
 
-RabbitMQ Management se puede abrir localmente en:
+Servicios Docker utilizados:
+
+```text
+campuslab-rabbitmq
+campuslab-ms-bookings
+campuslab-ms-rabbit-admin
+campuslab-ms-notify
+campuslab-bff
+```
+
+---
+
+## RabbitMQ Management
+
+Disponible localmente en:
 
 ```text
 http://localhost:15672
 ```
 
-Credenciales utilizadas:
+Credenciales:
 
 ```text
 Usuario: campuslab
 Contraseña: campuslab123
 ```
 
----
+RabbitMQ Management permite verificar visualmente:
 
-# Servicios Docker del proyecto
-
-La infraestructura local de CampusLab utiliza actualmente:
-
-```text
-campuslab-rabbitmq
-campuslab-ms-bookings
-campuslab-ms-rabbit-admin
-campuslab-bff
-```
-
-Puertos:
-
-| Servicio | Puerto |
-|---|---:|
-| campuslab-bff | 8080 |
-| campuslab-ms-bookings | 8081 |
-| campuslab-ms-rabbit-admin | 8082 |
-| RabbitMQ AMQP | 5672 |
-| RabbitMQ Management | 15672 |
+- colas
+- exchanges
+- bindings
+- routing keys
+- DLQ
 
 ---
 
-# Ejecución mediante Docker Compose
-
-Desde el repositorio de infraestructura:
-
-```powershell
-docker compose up -d
-```
-
-Para comprobar los contenedores:
-
-```powershell
-docker ps
-```
-
-Ejemplo de servicios esperados:
-
-```text
-campuslab-rabbitmq
-campuslab-ms-bookings
-campuslab-ms-rabbit-admin
-campuslab-bff
-```
-
----
-
-# Pruebas realizadas
+## Pruebas realizadas
 
 Las pruebas se realizaron utilizando:
 
@@ -698,60 +677,50 @@ Las pruebas se realizaron utilizando:
 - Docker
 - Docker Compose
 
-Se verificaron correctamente las siguientes operaciones:
+Se verificaron:
 
-```text
-Crear cola
-Crear exchange
-Crear binding
-Eliminar binding
-Eliminar cola
-Eliminar exchange
-```
-
-También se verificaron las validaciones:
-
-```text
-Nombre de cola vacío
-        ↓
-400 Bad Request
-```
-
-y:
-
-```text
-Tipo de exchange inválido
-        ↓
-400 Bad Request
-```
+- creación de cola
+- eliminación de cola
+- creación de exchange `direct`
+- creación de exchange `topic`
+- creación de exchange `fanout`
+- eliminación de exchange
+- creación de binding `direct`
+- creación de binding `topic`
+- creación de binding `fanout`
+- eliminación de bindings
+- validación de cola con nombre vacío
+- validación de tipo de exchange inválido
 
 ---
 
-# Secuencia de prueba en Postman
-
-Para probar correctamente la administración RabbitMQ se recomienda ejecutar los endpoints en este orden:
+## Secuencia de prueba en Postman
 
 ```text
 1. Crear cola
-       ↓
+       |
+       v
 2. Crear exchange
-       ↓
+       |
+       v
 3. Crear binding
-       ↓
+       |
+       v
 4. Verificar binding en RabbitMQ Management
-       ↓
+       |
+       v
 5. Eliminar binding
-       ↓
+       |
+       v
 6. Eliminar cola
-       ↓
+       |
+       v
 7. Eliminar exchange
 ```
 
----
+### Ejemplo completo con exchange direct
 
-# Ejemplo completo de prueba
-
-## 1. Crear cola
+Crear cola:
 
 ```http
 POST http://localhost:8082/api/rabbit/queues
@@ -764,9 +733,7 @@ POST http://localhost:8082/api/rabbit/queues
 }
 ```
 
----
-
-## 2. Crear exchange
+Crear exchange:
 
 ```http
 POST http://localhost:8082/api/rabbit/exchanges
@@ -774,14 +741,12 @@ POST http://localhost:8082/api/rabbit/exchanges
 
 ```json
 {
-  "name": "ex.prueba.campuslab",
+  "name": "ex.direct.campuslab",
   "type": "direct"
 }
 ```
 
----
-
-## 3. Crear binding
+Crear binding:
 
 ```http
 POST http://localhost:8082/api/rabbit/bindings
@@ -790,36 +755,22 @@ POST http://localhost:8082/api/rabbit/bindings
 ```json
 {
   "queueName": "q.prueba.campuslab",
-  "exchangeName": "ex.prueba.campuslab",
+  "exchangeName": "ex.direct.campuslab",
+  "exchangeType": "direct",
   "routingKey": "prueba.route"
 }
 ```
 
-El binding puede comprobarse en:
+El binding puede verificarse en:
 
 ```text
 RabbitMQ Management
 → Exchanges
-→ ex.prueba.campuslab
+→ ex.direct.campuslab
 → Bindings
 ```
 
-Debe aparecer:
-
-```text
-Exchange:
-ex.prueba.campuslab
-
-Queue:
-q.prueba.campuslab
-
-Routing key:
-prueba.route
-```
-
----
-
-## 4. Eliminar binding
+Eliminar binding:
 
 ```http
 DELETE http://localhost:8082/api/rabbit/bindings
@@ -828,60 +779,54 @@ DELETE http://localhost:8082/api/rabbit/bindings
 ```json
 {
   "queueName": "q.prueba.campuslab",
-  "exchangeName": "ex.prueba.campuslab",
+  "exchangeName": "ex.direct.campuslab",
+  "exchangeType": "direct",
   "routingKey": "prueba.route"
 }
 ```
 
----
-
-## 5. Eliminar cola
+Eliminar cola:
 
 ```http
 DELETE http://localhost:8082/api/rabbit/queues/q.prueba.campuslab
 ```
 
----
-
-## 6. Eliminar exchange
+Eliminar exchange:
 
 ```http
-DELETE http://localhost:8082/api/rabbit/exchanges/ex.prueba.campuslab
+DELETE http://localhost:8082/api/rabbit/exchanges/ex.direct.campuslab
 ```
 
 ---
 
-# Estado actual
+## Estado
 
-Actualmente se encuentran implementadas y operativas las siguientes funcionalidades:
+Actualmente están implementadas y probadas localmente:
 
-- Creación de colas RabbitMQ mediante REST.
-- Eliminación de colas RabbitMQ mediante REST.
-- Creación de exchanges mediante REST.
-- Eliminación de exchanges mediante REST.
-- Creación de bindings mediante REST.
-- Eliminación de bindings mediante REST.
-- Soporte para exchanges `direct`.
-- Soporte para exchanges `topic`.
-- Soporte para exchanges `fanout`.
-- Validación de nombres de colas.
-- Validación de tipos de exchange.
-- Uso de DTOs.
-- Uso de Jakarta Validation.
-- Manejo centralizado de errores.
-- Separación entre Controller y Service.
-- Integración con RabbitMQ.
-- Compilación mediante Gradle.
-- Ejecución mediante Docker.
-- Integración mediante Docker Compose.
-- Pruebas mediante Postman.
-- Verificación mediante RabbitMQ Management.
+- creación y eliminación de colas
+- creación y eliminación de exchanges
+- creación y eliminación de bindings
+- soporte para `direct`
+- soporte para `topic`
+- soporte para `fanout`
+- validación de nombres
+- validación de tipos de exchange
+- validación de `exchangeType`
+- validación de routing key para `direct` y `topic`
+- DTOs de entrada
+- Jakarta Validation
+- manejo centralizado de errores
+- separación Controller / Service
+- integración con RabbitMQ
+- ejecución mediante Docker
+- pruebas con Postman
+- verificación mediante RabbitMQ Management
 
 ---
 
-# Proyecto CampusLab
+## Proyecto CampusLab
 
-Este microservicio pertenece al proyecto **CampusLab**, compuesto por distintos repositorios independientes:
+Este microservicio pertenece a la arquitectura CampusLab:
 
 ```text
 campuslab-frontend
@@ -895,13 +840,9 @@ campuslab-ms-rabbit-admin
 campuslab-infra
 ```
 
-Cada componente posee una responsabilidad independiente dentro de la arquitectura basada en microservicios.
+Cada componente mantiene una responsabilidad independiente dentro de la arquitectura de microservicios.
 
----
-
-# Autor
-
-Proyecto desarrollado para la asignatura:
+## Asignatura
 
 ```text
 DSY1107 - Desarrollo Cloud Native I
