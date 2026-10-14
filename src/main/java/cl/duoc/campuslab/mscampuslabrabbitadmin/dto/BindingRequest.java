@@ -10,7 +10,9 @@ public class BindingRequest {
     @NotBlank(message = "El nombre del exchange es obligatorio")
     private String exchangeName;
 
-    @NotBlank(message = "La routing key es obligatoria")
+    @NotBlank(message = "El tipo de exchange es obligatorio")
+    private String exchangeType;
+
     private String routingKey;
 
     public BindingRequest() {
@@ -30,6 +32,14 @@ public class BindingRequest {
 
     public void setExchangeName(String exchangeName) {
         this.exchangeName = exchangeName;
+    }
+
+    public String getExchangeType() {
+        return exchangeType;
+    }
+
+    public void setExchangeType(String exchangeType) {
+        this.exchangeType = exchangeType;
     }
 
     public String getRoutingKey() {

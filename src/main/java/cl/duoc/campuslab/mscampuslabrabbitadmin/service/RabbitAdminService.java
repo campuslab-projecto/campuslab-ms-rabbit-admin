@@ -46,35 +46,10 @@ public class RabbitAdminService {
 
     public void createExchange(ExchangeRequest request) {
 
-        Exchange exchange;
-
-        switch (request.getType().toLowerCase()) {
-
-            case "direct" -> exchange =
-                    new DirectExchange(
-                            request.getName(),
-                            true,
-                            false
-                    );
-
-            case "topic" -> exchange =
-                    new TopicExchange(
-                            request.getName(),
-                            true,
-                            false
-                    );
-
-            case "fanout" -> exchange =
-                    new FanoutExchange(
-                            request.getName(),
-                            true,
-                            false
-                    );
-
-            default -> throw new IllegalArgumentException(
-                    "Tipo de exchange no soportado. Use direct, topic o fanout"
-            );
-        }
+        Exchange exchange = buildExchange(
+                request.getName(),
+                request.getType()
+        );
 
         rabbitAdmin.declareExchange(exchange);
     }
@@ -90,16 +65,12 @@ public class RabbitAdminService {
                 true
         );
 
-        DirectExchange exchange = new DirectExchange(
+        Binding binding = buildBinding(
+                queue,
                 request.getExchangeName(),
-                true,
-                false
+                request.getExchangeType(),
+                request.getRoutingKey()
         );
-
-        Binding binding = BindingBuilder
-                .bind(queue)
-                .to(exchange)
-                .with(request.getRoutingKey());
 
         rabbitAdmin.declareBinding(binding);
     }
@@ -111,17 +82,128 @@ public class RabbitAdminService {
                 true
         );
 
-        DirectExchange exchange = new DirectExchange(
+        Binding binding = buildBinding(
+                queue,
                 request.getExchangeName(),
-                true,
-                false
+                request.getExchangeType(),
+                request.getRoutingKey()
         );
 
-        Binding binding = BindingBuilder
-                .bind(queue)
-                .to(exchange)
-                .with(request.getRoutingKey());
-
         rabbitAdmin.removeBinding(binding);
+    }
+
+    private Exchange buildExchange(
+            String exchangeName,
+            String exchangeType
+    ) {
+
+        if (exchangeType == null || exchangeType.isBlank()) {
+            throw new IllegalArgumentException(
+                    "El tipo de exchange es obligatorio"
+            );
+        }
+
+        return switch (exchangeType.toLowerCase()) {
+
+            case "direct" -> new DirectExchange(
+                    exchangeName,
+                    true,
+                    false
+            );
+
+            case "topic" -> new TopicExchange(
+                    exchangeName,
+                    true,
+                    false
+            );
+
+            case "fanout" -> new FanoutExchange(
+                    exchangeName,
+                    true,
+                    false
+            );
+
+            default -> throw new IllegalArgumentException(
+                    "Tipo de exchange no soportado. Use direct, topic o fanout"
+            );
+        };
+    }
+
+    private Binding buildBinding(
+            Queue queue,
+            String exchangeName,
+            String exchangeType,
+            String routingKey
+    ) {
+
+        if (exchangeType == null || exchangeType.isBlank()) {
+            throw new IllegalArgumentException(
+                    "El tipo de exchange es obligatorio"
+            );
+        }
+
+        return switch (exchangeType.toLowerCase()) {
+
+            case "direct" -> {
+
+                validateRoutingKey(routingKey);
+
+                DirectExchange exchange =
+                        new DirectExchange(
+                                exchangeName,
+                                true,
+                                false
+                        );
+
+                yield BindingBuilder
+                        .bind(queue)
+                        .to(exchange)
+                        .with(routingKey);
+            }
+
+            case "topic" -> {
+
+                validateRoutingKey(routingKey);
+
+                TopicExchange exchange =
+                        new TopicExchange(
+                                exchangeName,
+                                true,
+                                false
+                        );
+
+                yield BindingBuilder
+                        .bind(queue)
+                        .to(exchange)
+                        .with(routingKey);
+            }
+
+            case "fanout" -> {
+
+                FanoutExchange exchange =
+                        new FanoutExchange(
+                                exchangeName,
+                                true,
+                                false
+                        );
+
+                yield BindingBuilder
+                        .bind(queue)
+                        .to(exchange);
+            }
+
+            default -> throw new IllegalArgumentException(
+                    "Tipo de exchange no soportado. Use direct, topic o fanout"
+            );
+        };
+    }
+
+    private void validateRoutingKey(String routingKey) {
+
+        if (routingKey == null || routingKey.isBlank()) {
+            throw new IllegalArgumentException(
+                    "La routing key es obligatoria para exchanges direct y topic"
+            );
+        }
     }
 }
