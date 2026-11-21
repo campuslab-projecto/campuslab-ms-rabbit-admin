@@ -4,6 +4,7 @@ import cl.duoc.campuslab.mscampuslabrabbitadmin.dto.BindingRequest;
 import cl.duoc.campuslab.mscampuslabrabbitadmin.dto.ExchangeRequest;
 import cl.duoc.campuslab.mscampuslabrabbitadmin.dto.QueueRequest;
 import cl.duoc.campuslab.mscampuslabrabbitadmin.service.RabbitAdminService;
+import cl.duoc.campuslab.mscampuslabrabbitadmin.service.RabbitManagementReadService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,11 +14,29 @@ import org.springframework.web.bind.annotation.*;
 public class RabbitAdminController {
 
     private final RabbitAdminService rabbitAdminService;
+    private final RabbitManagementReadService rabbitManagementReadService;
 
     public RabbitAdminController(
-            RabbitAdminService rabbitAdminService
+            RabbitAdminService rabbitAdminService,
+            RabbitManagementReadService rabbitManagementReadService
     ) {
         this.rabbitAdminService = rabbitAdminService;
+        this.rabbitManagementReadService = rabbitManagementReadService;
+    }
+
+    @GetMapping(value = "/queues", produces = "application/json")
+    public ResponseEntity<String> listQueues() {
+        return ResponseEntity.ok(rabbitManagementReadService.listQueues());
+    }
+
+    @GetMapping(value = "/exchanges", produces = "application/json")
+    public ResponseEntity<String> listExchanges() {
+        return ResponseEntity.ok(rabbitManagementReadService.listExchanges());
+    }
+
+    @GetMapping(value = "/bindings", produces = "application/json")
+    public ResponseEntity<String> listBindings() {
+        return ResponseEntity.ok(rabbitManagementReadService.listBindings());
     }
 
     @PostMapping("/queues")
